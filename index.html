@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WILDLIGHT — Environmental Audio Intelligence</title>
+  <meta name="description" content="An experimental machine learning research project investigating environmental sound classification across CNN baselines, spectrogram augmentation, and transfer learning on ESC-50.">
+  <meta name="author" content="Brettlee Sojan">
+  <meta name="theme-color" content="#0a0b0e">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="WILDLIGHT — Environmental Audio Intelligence">
+  <meta property="og:description" content="Investigating how machines learn the sounds of the world. Experimental ML research on ESC-50 comparing CNNs, SpecAugment, and ResNet18 transfer learning.">
+  <meta property="og:image" content="assets/model_comparison_fold5.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WILDLIGHT — Environmental Audio Intelligence">
+  <meta name="twitter:description" content="Investigating how machines learn the sounds of the world. Experimental ML research on ESC-50 with five-fold cross-validation.">
+  <meta name="twitter:image" content="assets/model_comparison_fold5.png">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Reading Progress Bar -->
+  <div id="scroll-progress" class="scroll-progress" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner container">
+      <a href="#hero" class="brand-link" aria-label="WILDLIGHT home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="20" height="20" rx="4" fill="#13161C"/>
+            <line x1="4" y1="10" x2="4" y2="10" stroke="#7BA0B5" stroke-width="1.8" stroke-linecap="round"/>
+            <line x1="7" y1="6" x2="7" y2="14" stroke="#7BA0B5" stroke-width="1.8" stroke-linecap="round"/>
+            <line x1="10" y1="3" x2="10" y2="17" stroke="#A3C7D9" stroke-width="1.8" stroke-linecap="round"/>
+            <line x1="13" y1="7" x2="13" y2="13" stroke="#7BA0B5" stroke-width="1.8" stroke-linecap="round"/>
+            <line x1="16" y1="9" x2="16" y2="11" stroke="#4A5568" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-title">WILDLIGHT</span>
+          <span class="brand-desc">Environmental Audio Intelligence</span>
+        </span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop" aria-label="Primary Navigation">
+        <ul class="nav-list">
+          <li><a href="#research" class="nav-link">Research</a></li>
+          <li><a href="#methodology" class="nav-link">Methodology</a></li>
+          <li><a href="#results" class="nav-link">Results</a></li>
+          <li><a href="#cross-validation" class="nav-link">Five-Fold CV</a></li>
+          <li><a href="#engineering" class="nav-link">Engineering</a></li>
+          <li><a href="#limitations" class="nav-link">Limitations</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <a href="https://github.com/brettleevector-art/wildlight-audio-ml" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" id="header-repo-link">
+          <span>View source</span>
+          <svg class="external-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 12L12 4M12 4H6M12 4V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <!-- Mobile Navigation Toggle -->
+        <button type="button" class="mobile-toggle" id="mobile-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-nav" id="mobile-nav" hidden>
+      <div class="container mobile-nav-inner">
+        <ul class="mobile-nav-list">
+          <li><a href="#research" class="mobile-nav-link">Research Questions</a></li>
+          <li><a href="#methodology" class="mobile-nav-link">Dataset & Preprocessing</a></li>
+          <li><a href="#results" class="mobile-nav-link">Fold-5 Model Comparison</a></li>
+          <li><a href="#cross-validation" class="mobile-nav-link">Five-Fold Cross-Validation</a></li>
+          <li><a href="#engineering" class="mobile-nav-link">Engineering Implementation</a></li>
+          <li><a href="#limitations" class="mobile-nav-link">Limitations & Interpretation</a></li>
+          <li class="mobile-nav-divider"></li>
+          <li>
+            <a href="https://github.com/brettleevector-art/wildlight-audio-ml" target="_blank" rel="noopener noreferrer" class="mobile-nav-link mobile-nav-ext">
+              GitHub Repository ↗
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/brettleevector-art/wildlight-audio-ml/blob/main/RESULTS.md" target="_blank" rel="noopener noreferrer" class="mobile-nav-link mobile-nav-ext">
+              Technical Results Report ↗
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <!-- Section 2: Hero -->
+    <section class="section hero-section" id="hero">
+      <div class="container hero-container">
+        <div class="hero-content">
+          <div class="eyebrow-badge">
+            <span class="badge-dot" aria-hidden="true"></span>
+            <span>A Machine Learning Experiment / ESC-50</span>
+          </div>
+
+          <h1 class="hero-headline">
+            Investigating how machines learn the sounds of the world.
+          </h1>
+
+          <p class="hero-lead">
+            WILDLIGHT explores environmental sound classification through CNN baselines, spectrogram augmentation, and transfer learning—evaluated on ESC-50 with an official five-fold validation study.
+          </p>
+
+          <div class="hero-actions">
+            <a href="#results" class="btn btn-primary">
+              <span>Explore the results</span>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 3V13M8 13L13 8M8 13L3 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="https://github.com/brettleevector-art/wildlight-audio-ml" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              <span>View source on GitHub</span>
+              <svg class="external-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M4 12L12 4M12 4H6M12 4V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <div class="hero-status">
+            <span class="status-indicator"></span>
+            <span>Independent ML Research · Static Technical Showcase · Reproducible Pipeline</span>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="visual-card">
+            <div class="visual-header">
+              <span class="visual-label">Acoustic Signal Transform</span>
+              <span class="visual-tag">22.05 kHz · 128 Mels</span>
+            </div>
+            <!-- Clean SVG audio spectrogram graphic -->
+            <svg class="spectrogram-svg" viewBox="0 0 460 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="specGrad" x1="0" y1="100%" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#11151c"/>
+                  <stop offset="35%" stop-color="#1f3647"/>
+                  <stop offset="70%" stop-color="#55819d"/>
+                  <stop offset="100%" stop-color="#8bb4cc"/>
+                </linearGradient>
+                <pattern id="gridPattern" width="23" height="22" patternUnits="userSpaceOnUse">
+                  <path d="M 23 0 L 0 0 0 22" fill="none" stroke="rgba(255, 255, 255, 0.04)" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <!-- Background Grid -->
+              <rect width="460" height="220" fill="url(#gridPattern)" rx="4"/>
+              
+              <!-- Frequency Axis Ticks -->
+              <line x1="20" y1="190" x2="440" y2="190" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1"/>
+              <text x="20" y="206" fill="#646C7A" font-size="9" font-family="'JetBrains Mono', monospace">0 Hz</text>
+              <text x="220" y="206" fill="#646C7A" font-size="9" font-family="'JetBrains Mono', monospace">11,025 Hz</text>
+              <text x="410" y="206" fill="#646C7A" font-size="9" font-family="'JetBrains Mono', monospace">22,050 Hz</text>
+
+              <!-- Mel Spectrogram Heatmap Simulation with Technical Precision -->
+              <!-- Low Frequency Energy Layer -->
+              <path d="M 20 185 Q 60 170 100 178 T 180 165 T 260 175 T 340 160 T 420 180 L 440 185 L 440 190 L 20 190 Z" fill="url(#specGrad)" opacity="0.45"/>
+              
+              <!-- Mid Frequency Harmonic Formants -->
+              <path d="M 20 145 C 50 125, 80 160, 120 135 C 160 110, 200 150, 240 120 C 280 90, 320 140, 360 115 C 400 90, 420 130, 440 140 L 440 190 L 20 190 Z" fill="url(#specGrad)" opacity="0.6"/>
+              
+              <!-- High Transient Energy Points -->
+              <circle cx="120" cy="95" r="18" fill="#8BB4CC" opacity="0.4" filter="blur(8px)"/>
+              <circle cx="240" cy="85" r="22" fill="#7BA0B5" opacity="0.45" filter="blur(10px)"/>
+              <circle cx="360" cy="75" r="16" fill="#A3C7D9" opacity="0.4" filter="blur(8px)"/>
+
+              <!-- Transient Waveform Line Overlay -->
+              <path d="M 20 100 L 50 100 L 70 88 L 90 112 L 110 65 L 120 130 L 130 75 L 145 100 L 200 100 L 220 70 L 235 125 L 245 50 L 255 140 L 270 85 L 290 100 L 330 100 L 350 78 L 360 122 L 370 60 L 380 135 L 395 88 L 410 100 L 440 100" 
+                    fill="none" stroke="#A3C7D9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+            </svg>
+            <div class="visual-footer">
+              <span class="mono-meta">5.0s waveform · 110,250 samples · 128 mel bins</span>
+              <span class="mono-tag">Log-power dB scale</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Project Snapshot -->
+    <section class="section snapshot-section" id="snapshot">
+      <div class="container">
+        <div class="section-label">01 / DATASET FOUNDATION</div>
+        <div class="snapshot-grid">
+          <div class="stat-card">
+            <span class="stat-value">2,000</span>
+            <span class="stat-label">Audio recordings</span>
+            <span class="stat-sub">High-quality environmental recordings extracted from Freesound</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-value">50</span>
+            <span class="stat-label">Sound categories</span>
+            <span class="stat-sub">Spanning animals, natural soundscapes, human sounds, and urban noises</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-value">5.0s</span>
+            <span class="stat-label">Duration per clip</span>
+            <span class="stat-sub">Fixed window resampled to 22,050 Hz (110,250 discrete samples)</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-value">5</span>
+            <span class="stat-label">Official folds</span>
+            <span class="stat-sub">400 clips per fold; pre-arranged to prevent clip source leakage</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Research Questions -->
+    <section class="section research-section" id="research">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">02 / SCIENTIFIC INQUIRY</div>
+          <h2 class="section-title">
+            Four questions. Three model approaches. One evaluation framework.
+          </h2>
+          <p class="section-lead">
+            Environmental audio classification requires learning invariant spectral-temporal signatures from limited data. WILDLIGHT systematically addresses four empirical questions:
+          </p>
+        </div>
+
+        <div class="questions-grid">
+          <article class="question-card">
+            <div class="question-num">RQ 01</div>
+            <h3 class="question-title">Representation learning from scratch</h3>
+            <p class="question-text">
+              Can a standard convolutional neural network (CNN) trained from scratch learn useful acoustic representations directly from 2D mel spectrograms without pre-training?
+            </p>
+            <div class="question-footer">
+              <span class="model-badge">Baseline CNN</span>
+              <span class="eval-badge">Fold-5 evaluation</span>
+            </div>
+          </article>
+
+          <article class="question-card">
+            <div class="question-num">RQ 02</div>
+            <h3 class="question-title">Spectrogram masking generalization</h3>
+            <p class="question-text">
+              Does SpecAugment (frequency and time masking) during training improve model generalization to unseen environmental sound recordings?
+            </p>
+            <div class="question-footer">
+              <span class="model-badge">CNN + SpecAugment</span>
+              <span class="eval-badge">Fold-5 evaluation</span>
+            </div>
+          </article>
+
+          <article class="question-card">
+            <div class="question-num">RQ 03</div>
+            <h3 class="question-title">Transfer learning efficacy</h3>
+            <p class="question-text">
+              Does an ImageNet-pretrained ResNet18 adapted for single-channel mel spectrograms significantly outperform the custom CNN trained from scratch?
+            </p>
+            <div class="question-footer">
+              <span class="model-badge">Pretrained ResNet18</span>
+              <span class="eval-badge">Fold-5 comparison</span>
+            </div>
+          </article>
+
+          <article class="question-card">
+            <div class="question-num">RQ 04</div>
+            <h3 class="question-title">Consistency across official folds</h3>
+            <p class="question-text">
+              How consistent is ResNet18's classification accuracy across all five official ESC-50 validation folds when holding out each fold once?
+            </p>
+            <div class="question-footer">
+              <span class="model-badge">ResNet18 CV</span>
+              <span class="eval-badge">5-Fold cross-validation</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Methodology & Pipeline -->
+    <section class="section methodology-section" id="methodology">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">03 / METHODOLOGY & PIPELINE</div>
+          <h2 class="section-title">
+            Rigorous signal processing and modular model architectures.
+          </h2>
+          <p class="section-lead">
+            Audio classification bridges digital signal processing and visual computer vision. Training and inference share a single standardized preprocessing pipeline.
+          </p>
+        </div>
+
+        <!-- Processing Pipelines Flow -->
+        <div class="pipeline-card">
+          <div class="pipeline-block">
+            <h3 class="pipeline-heading">Audio Preprocessing Pipeline</h3>
+            <p class="pipeline-sub">Transforms raw time-domain waveforms into normalized 2D acoustic representations</p>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <span class="step-badge">Input</span>
+                <span class="step-name">Raw Audio</span>
+                <span class="step-desc">WAV file · arbitrary sampling</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">Resample</span>
+                <span class="step-name">Fixed Waveform</span>
+                <span class="step-desc">22,050 Hz · 110,250 samples (5s)</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">DSP</span>
+                <span class="step-name">Mel Spectrogram</span>
+                <span class="step-desc">128 bins · power to dB conversion</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">Normalize</span>
+                <span class="step-name">Normalized Tensor</span>
+                <span class="step-desc">(m + 40) / 40 · 1 × 128 × 216</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">Inference</span>
+                <span class="step-name">Predicted Class</span>
+                <span class="step-desc">Top-5 ESC-50 probabilities</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-divider"></div>
+
+          <div class="pipeline-block">
+            <h3 class="pipeline-heading">Cross-Validation Protocol</h3>
+            <p class="pipeline-sub">Respects official ESC-50 recording partitions to avoid acoustic leakage</p>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <span class="step-badge">Fold 1..4</span>
+                <span class="step-name">Train Partition</span>
+                <span class="step-desc">1,600 clips (4 folds)</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">Fold 5</span>
+                <span class="step-name">Validation Set</span>
+                <span class="step-desc">400 held-out clips</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">Rotation</span>
+                <span class="step-name">Rotate All 5 Folds</span>
+                <span class="step-desc">Each fold held out once</span>
+              </div>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <div class="flow-step">
+                <span class="step-badge">Metric</span>
+                <span class="step-name">Statistical Aggregate</span>
+                <span class="step-desc">Mean accuracy &amp; population SD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Technical Parameters & Architecture Specifications -->
+        <div class="tech-spec-grid">
+          <div class="spec-card">
+            <h4 class="spec-title">Signal Processing Parameters</h4>
+            <ul class="spec-list">
+              <li>
+                <span class="spec-key">Sample Rate (SR)</span>
+                <span class="spec-val">22,050 Hz</span>
+              </li>
+              <li>
+                <span class="spec-key">Clip Length (N)</span>
+                <span class="spec-val">5.0 seconds (110,250 samples)</span>
+              </li>
+              <li>
+                <span class="spec-key">Mel Frequency Bins</span>
+                <span class="spec-val">128 filters</span>
+              </li>
+              <li>
+                <span class="spec-key">dB Conversion</span>
+                <span class="spec-val">librosa.power_to_db(ref=np.max)</span>
+              </li>
+              <li>
+                <span class="spec-key">Normalization</span>
+                <span class="spec-val">(m + 40.0) / 40.0</span>
+              </li>
+              <li>
+                <span class="spec-key">Data Tensor Type</span>
+                <span class="spec-val">torch.float32 [1, 128, 216]</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="spec-card">
+            <h4 class="spec-title">Three Model Architectures</h4>
+            <div class="arch-item">
+              <span class="arch-name">1. Baseline CNN (model.py)</span>
+              <p class="arch-desc">
+                3 convolutional blocks (1→32→64→128 channels) with BatchNorm, ReLU activations, and MaxPool2d. Global average pooling feeds a linear classification layer with 50 outputs. Trained from scratch.
+              </p>
+            </div>
+            <div class="arch-item">
+              <span class="arch-name">2. CNN + SpecAugment (train_specaugment.py)</span>
+              <p class="arch-desc">
+                Identical 3-block CNN architecture. Augments spectrograms during training using <code>FrequencyMasking(freq_mask_param=15)</code> and <code>TimeMasking(time_mask_param=30)</code>. Validation data is kept unaugmented.
+              </p>
+            </div>
+            <div class="arch-item">
+              <span class="arch-name">3. Adapted ResNet18 (resnet_model.py)</span>
+              <p class="arch-desc">
+                Standard <code>torchvision.models.resnet18</code> with ImageNet-pretrained weights. First <code>conv1</code> layer is adapted from 3 input channels to 1 by summing RGB weights. Final linear layer adapted to 50 classes.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Initial Fold-5 Comparison -->
+    <section class="section results-section" id="results">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">04 / FOLD-5 EXPERIMENTAL BENCHMARK</div>
+          <h2 class="section-title">
+            Architecture changes the outcome.
+          </h2>
+          <div class="experiment-context-pill">
+            <span class="pill-dot"></span>
+            <span>Initial single-split experiment · Validation fold 5 · 400 clips (Folds 1–4 used for training)</span>
+          </div>
+          <p class="section-lead">
+            Evaluating checkpoints on the official held-out Fold 5 reveals a significant +21.75 percentage point gain for the adapted ResNet18 over the CNN trained from scratch.
+          </p>
+        </div>
+
+        <div class="results-layout">
+          <!-- Results Table -->
+          <div class="table-container">
+            <div class="table-header">
+              <h3 class="table-heading">Fold-5 Validation Accuracies</h3>
+              <span class="table-tag">400 Clips Evaluated</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Model / Approach</th>
+                  <th scope="col">Checkpoint File</th>
+                  <th scope="col" class="num-col">Correct</th>
+                  <th scope="col" class="num-col">Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>Baseline CNN</strong>
+                    <div class="model-note">Trained from scratch · 30 epochs</div>
+                  </td>
+                  <td><code class="code-pill">esc50_cnn.pth</code></td>
+                  <td class="num-col">186 / 400</td>
+                  <td class="num-col"><span class="table-acc">46.50%</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>CNN + SpecAugment</strong>
+                    <div class="model-note">Frequency &amp; time masking · Final epoch</div>
+                  </td>
+                  <td><code class="code-pill">esc50_cnn_specaugment.pth</code></td>
+                  <td class="num-col">150 / 400</td>
+                  <td class="num-col"><span class="table-acc">37.50%</span></td>
+                </tr>
+                <tr class="highlight-row">
+                  <td>
+                    <strong>ResNet18 (Final Checkpoint)</strong>
+                    <div class="model-note">Primary single-split benchmark · Fine-tuned</div>
+                  </td>
+                  <td><code class="code-pill">esc50_resnet18_last.pth</code></td>
+                  <td class="num-col">273 / 400</td>
+                  <td class="num-col"><span class="table-acc highlight-acc">68.25%</span></td>
+                </tr>
+                <tr class="diagnostic-row">
+                  <td>
+                    <strong>ResNet18 (Best Checkpoint)</strong>
+                    <div class="diagnostic-tag">Diagnostic only · Validation-selected</div>
+                  </td>
+                  <td><code class="code-pill">esc50_resnet18_best.pth</code></td>
+                  <td class="num-col">307 / 400</td>
+                  <td class="num-col"><span class="table-acc diagnostic-acc">76.75%*</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="metric-callout-box">
+              <div class="callout-diff">
+                <span class="diff-value">+21.75%</span>
+                <span class="diff-label">Absolute accuracy gain of ResNet18 final checkpoint over baseline CNN</span>
+              </div>
+              <p class="callout-text">
+                Transfer learning from visual domain priors provides immediate feature extraction benefits for acoustic spectrograms, even with simple 1-channel weight aggregation.
+              </p>
+            </div>
+          </div>
+
+          <!-- Chart Display -->
+          <div class="chart-display-card">
+            <div class="chart-header">
+              <div>
+                <span class="chart-title">model_comparison_fold5.png</span>
+                <span class="chart-sub">Generated from compare_models.py</span>
+              </div>
+              <button type="button" class="btn btn-ghost btn-xs zoom-btn" data-target="model_comparison_fold5" aria-label="Expand chart">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M10 2H14M14 2V6M14 2L9 7M6 14H2M2 14V10M2 14L7 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Expand</span>
+              </button>
+            </div>
+
+            <div class="chart-frame">
+              <img src="assets/model_comparison_fold5.png" alt="Bar chart showing fold-5 validation accuracy: Baseline CNN at 46.50%, CNN with SpecAugment at 37.50%, ResNet18 at 68.25%, and diagnostic ResNet18 best checkpoint at 76.75%." class="chart-image" loading="lazy">
+            </div>
+
+            <figcaption class="chart-caption">
+              <strong>Figure 1:</strong> Validation accuracy comparison on official Fold 5 (400 clips) evaluated with <code>compare_models.py</code>. The final ResNet18 checkpoint achieves 68.25%, outperforming the CNN baseline by 21.75 percentage points.
+            </figcaption>
+          </div>
+        </div>
+
+        <!-- Section 6 In-Depth Caveats -->
+        <div class="caveats-grid">
+          <div class="caveat-card">
+            <div class="caveat-badge">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 5V9M8 11.5V12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <span>*Diagnostic Checkpoint Caveat</span>
+            </div>
+            <h4 class="caveat-heading">The 76.75% Best Checkpoint is Diagnostic</h4>
+            <p class="caveat-body">
+              The 76.75% score achieved by <code>esc50_resnet18_best.pth</code> was selected using validation performance on the very same Fold 5. Because the selection criterion was coupled to the test split, this measurement is prone to optimistic selection bias. The <strong>68.25%</strong> final-epoch checkpoint is the unbiased primary single-split benchmark.
+            </p>
+          </div>
+
+          <div class="caveat-card">
+            <div class="caveat-badge">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 5V9M8 11.5V12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <span>SpecAugment Observation</span>
+            </div>
+            <h4 class="caveat-heading">Training Trajectory vs. Saved Weights</h4>
+            <p class="caveat-body">
+              During training, CNN + SpecAugment reached a peak observed accuracy of <strong>51.00% at epoch 23</strong> (24th epoch). However, the training script saved only the final epoch weights, which degraded to <strong>37.50%</strong>. We report the actual saved checkpoint and do not claim that SpecAugment outperformed the baseline in this run.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 7: ResNet18 Five-Fold Cross-Validation -->
+    <section class="section cv-section" id="cross-validation">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">05 / CROSS-VALIDATION STUDY</div>
+          <h2 class="section-title">
+            A single split isn't the whole story.
+          </h2>
+          <div class="experiment-context-pill">
+            <span class="pill-dot"></span>
+            <span>ResNet18 · Final-epoch validation accuracy · Five official ESC-50 folds</span>
+          </div>
+          <p class="section-lead">
+            Holding out each official fold once provides an unbiased statistical view of model stability across heterogeneous environmental sound categories.
+          </p>
+        </div>
+
+        <!-- Headline Aggregates -->
+        <div class="cv-summary-cards">
+          <div class="cv-stat-card primary-stat">
+            <span class="cv-stat-label">Headline Metric</span>
+            <div class="cv-stat-number">75.75%</div>
+            <span class="cv-stat-name">Mean final validation accuracy</span>
+            <span class="cv-stat-sub">Across all five official ESC-50 folds (2,000 clips)</span>
+          </div>
+
+          <div class="cv-stat-card">
+            <span class="cv-stat-label">Dispersion</span>
+            <div class="cv-stat-number">3.48<span class="unit">pts</span></div>
+            <span class="cv-stat-name">Population standard deviation</span>
+            <span class="cv-stat-sub">Demonstrates consistent convergence between splits</span>
+          </div>
+
+          <div class="cv-stat-card">
+            <span class="cv-stat-label">Protocol</span>
+            <div class="cv-stat-number">5 / 5</div>
+            <span class="cv-stat-name">Official folds completed</span>
+            <span class="cv-stat-sub">400 unique held-out audio clips per fold</span>
+          </div>
+        </div>
+
+        <div class="results-layout">
+          <!-- Fold Table -->
+          <div class="table-container">
+            <div class="table-header">
+              <h3 class="table-heading">Fold-by-Fold Cross-Validation Results</h3>
+              <span class="table-tag">resnet18_cv_results.json</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Validation Fold</th>
+                  <th scope="col">Training Folds</th>
+                  <th scope="col" class="num-col">Final Accuracy</th>
+                  <th scope="col" class="num-col">Best Observed</th>
+                  <th scope="col" class="num-col">Best Epoch</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Fold 1</strong></td>
+                  <td>2, 3, 4, 5 (1,600 clips)</td>
+                  <td class="num-col"><strong>71.50%</strong></td>
+                  <td class="num-col text-muted">77.25%</td>
+                  <td class="num-col text-muted">Epoch 28</td>
+                </tr>
+                <tr>
+                  <td><strong>Fold 2</strong></td>
+                  <td>1, 3, 4, 5 (1,600 clips)</td>
+                  <td class="num-col"><strong>78.75%</strong></td>
+                  <td class="num-col text-muted">82.00%</td>
+                  <td class="num-col text-muted">Epoch 25</td>
+                </tr>
+                <tr>
+                  <td><strong>Fold 3</strong></td>
+                  <td>1, 2, 4, 5 (1,600 clips)</td>
+                  <td class="num-col"><strong>73.00%</strong></td>
+                  <td class="num-col text-muted">77.50%</td>
+                  <td class="num-col text-muted">Epoch 10</td>
+                </tr>
+                <tr class="highlight-row">
+                  <td><strong>Fold 4</strong></td>
+                  <td>1, 2, 3, 5 (1,600 clips)</td>
+                  <td class="num-col"><strong class="highlight-acc">80.75%</strong></td>
+                  <td class="num-col text-muted">85.00%</td>
+                  <td class="num-col text-muted">Epoch 22</td>
+                </tr>
+                <tr>
+                  <td><strong>Fold 5</strong></td>
+                  <td>1, 2, 3, 4 (1,600 clips)</td>
+                  <td class="num-col"><strong>74.75%</strong></td>
+                  <td class="num-col text-muted">74.75%</td>
+                  <td class="num-col text-muted">Epoch 30</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="table-summary-row">
+                  <td colspan="2"><strong>Mean Aggregate (Final Accuracies)</strong></td>
+                  <td class="num-col"><strong>75.75%</strong></td>
+                  <td colspan="2" class="num-col text-muted">Population SD: 3.48 pts</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <div class="clarification-card">
+              <h4 class="clarification-title">Distinction Between the Two Fold-5 Values</h4>
+              <p class="clarification-text">
+                Notice that Fold 5 appears twice in this report with different values:
+              </p>
+              <ul class="clarification-list">
+                <li><strong>68.25%:</strong> The final checkpoint accuracy from the initial single-split model comparison (Experiment 3 in Section 4).</li>
+                <li><strong>74.75%:</strong> The final accuracy for Fold 5 within the separate five-fold cross-validation run (Seed 47, Table 2).</li>
+              </ul>
+              <p class="clarification-text">
+                These numbers originate from independent training workflows with different initializations. They are complementary findings, not contradictions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Chart Display -->
+          <div class="chart-display-card">
+            <div class="chart-header">
+              <div>
+                <span class="chart-title">resnet18_five_fold_cv.png</span>
+                <span class="chart-sub">Generated from plot_cv_results.py</span>
+              </div>
+              <button type="button" class="btn btn-ghost btn-xs zoom-btn" data-target="resnet18_five_fold_cv" aria-label="Expand chart">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M10 2H14M14 2V6M14 2L9 7M6 14H2M2 14V10M2 14L7 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Expand</span>
+              </button>
+            </div>
+
+            <div class="chart-frame">
+              <img src="assets/resnet18_five_fold_cv.png" alt="Bar chart of ResNet18 five-fold cross-validation results: Fold 1 at 71.50%, Fold 2 at 78.75%, Fold 3 at 73.00%, Fold 4 at 80.75%, and Fold 5 at 74.75%, with a dashed horizontal line at 75.75% mean accuracy." class="chart-image" loading="lazy">
+            </div>
+
+            <figcaption class="chart-caption">
+              <strong>Figure 2:</strong> ResNet18 five-fold cross-validation on ESC-50. Each official fold was held out once while training on the other four folds. Mean final accuracy is 75.75% with a population standard deviation of 3.48 percentage points.
+            </figcaption>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 8: Engineering Story & Inference Path -->
+    <section class="section engineering-section" id="engineering">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">06 / ENGINEERING THE INFERENCE PATH</div>
+          <h2 class="section-title">
+            From experiments to an inspectable pipeline.
+          </h2>
+          <p class="section-lead">
+            Machine learning research is only as good as its reproducibility. WILDLIGHT couples experimental code with modular inference pipelines and a local interactive testing suite.
+          </p>
+        </div>
+
+        <div class="modules-grid">
+          <div class="module-card">
+            <div class="module-header">
+              <span class="module-tag">Core Transform</span>
+              <h3 class="module-file">dataset.py</h3>
+            </div>
+            <p class="module-desc">
+              Centralizes audio loading and shared preprocessing. Ensures training routines and downstream inference use identical windowing, STFT parameters, and normalization logic.
+            </p>
+            <ul class="module-features">
+              <li>Handles arbitrary sample rate conversion to 22.05 kHz</li>
+              <li>Fixed waveform size padding/trimming to 110,250 samples</li>
+              <li>128-band Mel Spectrogram calculation via Librosa</li>
+              <li>Decibel power scaling and min-max normalization</li>
+            </ul>
+          </div>
+
+          <div class="module-card">
+            <div class="module-header">
+              <span class="module-tag">CLI Inference</span>
+              <h3 class="module-file">predict.py</h3>
+            </div>
+            <p class="module-desc">
+              Provides direct command-line inference on any external audio file. Automatically applies the shared preprocessing transform and returns the top 5 predicted ESC-50 categories.
+            </p>
+            <div class="code-snippet-box">
+              <div class="snippet-header">
+                <span class="snippet-title">Terminal execution</span>
+                <button type="button" class="copy-btn" data-clipboard="python predict.py &quot;ESC-50/audio/1-100032-A-0.wav&quot;" aria-label="Copy CLI command">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M3 11H2.5C1.67157 11 1 10.3284 1 9.5V2.5C1 1.67157 1.67157 1 2.5 1H9.5C10.3284 1 11 1.67157 11 2.5V3" stroke="currentColor" stroke-width="1.4"/>
+                  </svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+              <pre class="code-block"><code>python predict.py "ESC-50/audio/1-100032-A-0.wav"</code></pre>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-header">
+              <span class="module-tag">Local Interface</span>
+              <h3 class="module-file">app.py</h3>
+            </div>
+            <p class="module-desc">
+              Launches an interactive Gradio web application for local audio file testing, drag-and-drop recording inspection, and real-time category probability ranking.
+            </p>
+            <div class="code-snippet-box">
+              <div class="snippet-header">
+                <span class="snippet-title">Launch local app</span>
+                <button type="button" class="copy-btn" data-clipboard="python app.py" aria-label="Copy launch command">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M3 11H2.5C1.67157 11 1 10.3284 1 9.5V2.5C1 1.67157 1.67157 1 2.5 1H9.5C10.3284 1 11 1.67157 11 2.5V3" stroke="currentColor" stroke-width="1.4"/>
+                  </svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+              <pre class="code-block"><code>python app.py  # Serves at http://127.0.0.1:7860</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="notice-box">
+          <div class="notice-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="7" stroke="#7BA0B5" stroke-width="1.5"/>
+              <line x1="8" y1="5" x2="8" y2="8.5" stroke="#7BA0B5" stroke-width="1.6" stroke-linecap="round"/>
+              <circle cx="8" cy="11.5" r="0.8" fill="#7BA0B5"/>
+            </svg>
+          </div>
+          <div class="notice-content">
+            <h4 class="notice-title">Local Execution Notice</h4>
+            <p class="notice-text">
+              The Gradio interface and prediction scripts run locally on your machine with PyTorch and the ESC-50 dataset. This showcase website is a lightweight, purely static research report hosted on Vercel—it intentionally does not host live inference backends, GPU instances, or audio upload storage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 9: Limitations & Scientific Interpretation -->
+    <section class="section limitations-section" id="limitations">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-label">07 / RESEARCH INTEGRITY</div>
+          <h2 class="section-title">
+            What the results show—and what they don’t.
+          </h2>
+          <p class="section-lead">
+            Transparent science requires clearly stating experimental boundaries. These findings demonstrate specific architectural behaviors on ESC-50 rather than universal claims.
+          </p>
+        </div>
+
+        <div class="limitations-grid">
+          <div class="limit-card">
+            <div class="limit-num">01</div>
+            <h3 class="limit-title">Dataset-Specific Domain Scope</h3>
+            <p class="limit-text">
+              All results are measured on ESC-50 (2,000 environmental sound clips across 50 classes). While the official fold splits mitigate recording contamination, these metrics do not guarantee identical generalization across noisy real-world recordings, variable acoustic sensors, or disparate audio domains (e.g. AudioSet).
+            </p>
+          </div>
+
+          <div class="limit-card">
+            <div class="limit-num">02</div>
+            <h3 class="limit-title">Selection Bias in Best Checkpoints</h3>
+            <p class="limit-text">
+              The diagnostic Fold-5 result of 76.75% was achieved by selecting the highest-scoring checkpoint evaluated on Fold 5. Evaluating a model on the same fold used to pick its weights produces optimistic bias. Only the final-epoch weights (68.25% on single-split, 75.75% mean on cross-validation) should be cited as unbiased benchmarks.
+            </p>
+          </div>
+
+          <div class="limit-card">
+            <div class="limit-num">03</div>
+            <h3 class="limit-title">SpecAugment Checkpointing Dynamics</h3>
+            <p class="limit-text">
+              While SpecAugment reached a peak validation accuracy of 51.00% at epoch 23, the training script saved only final-epoch weights (37.50%). This demonstrates that data augmentation can induce late-training instability, highlighting the critical importance of automated validation checkpointing in audio ML pipelines.
+            </p>
+          </div>
+
+          <div class="limit-card">
+            <div class="limit-num">04</div>
+            <h3 class="limit-title">Uncalibrated Softmax Probabilities</h3>
+            <p class="limit-text">
+              The output scores returned by <code>predict.py</code> and <code>app.py</code> represent standard softmax normalized logits. They indicate relative model confidence across the 50 classes, not true calibrated Bayesian posterior probabilities. High confidence on ambiguous acoustic inputs does not imply certainty.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 10: Repository CTA -->
+    <section class="section cta-section" id="repository">
+      <div class="container">
+        <div class="cta-card">
+          <div class="cta-inner">
+            <div class="section-label">08 / SOURCE ARTIFACTS</div>
+            <h2 class="cta-title">Explore the implementation.</h2>
+            <p class="cta-lead">
+              The experiments, training logs, evaluation scripts, cross-validation data, and inference pipelines are fully documented in the GitHub repository.
+            </p>
+            
+            <div class="cta-buttons">
+              <a href="https://github.com/brettleevector-art/wildlight-audio-ml" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg" id="cta-repo-main">
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8C0 11.54 2.29 14.53 5.47 15.59C5.87 15.66 6.02 15.42 6.02 15.21C6.02 15.02 6.01 14.39 6.01 13.72C4 14.09 3.48 13.23 3.32 12.78C3.23 12.55 2.84 11.84 2.5 11.65C2.22 11.5 1.82 11.13 2.49 11.12C3.12 11.11 3.57 11.7 3.72 11.94C4.44 13.17 5.61 12.82 6.07 12.61C6.14 12.09 6.35 11.74 6.58 11.54C4.78 11.34 2.89 10.64 2.89 7.54C2.89 6.66 3.2 5.94 3.72 5.37C3.64 5.17 3.36 4.34 3.8 3.25C3.8 3.25 4.48 3.04 6.02 4.08C6.67 3.9 7.35 3.81 8.03 3.81C8.71 3.81 9.39 3.9 10.04 4.08C11.58 3.03 12.26 3.25 12.26 3.25C12.7 4.34 12.42 5.17 12.34 5.37C12.86 5.94 13.17 6.65 13.17 7.54C13.17 10.65 11.27 11.34 9.47 11.54C9.76 11.79 10.01 12.27 10.01 13.01C10.01 14.08 10 14.94 10 15.21C10 15.42 10.15 15.67 10.55 15.59C13.71 14.53 16 11.53 16 8C16 3.58 12.42 0 8 0Z"/>
+                </svg>
+                <span>View repository on GitHub</span>
+              </a>
+
+              <a href="https://github.com/brettleevector-art/wildlight-audio-ml/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+                <span>Read methodology (README)</span>
+                <svg class="external-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4 12L12 4M12 4H6M12 4V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+
+              <a href="https://github.com/brettleevector-art/wildlight-audio-ml/blob/main/RESULTS.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+                <span>Read results report (RESULTS.md)</span>
+                <svg class="external-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4 12L12 4M12 4H6M12 4V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+            </div>
+
+            <div class="cta-meta">
+              <span class="mono-meta">Repository: github.com/brettleevector-art/wildlight-audio-ml</span>
+              <span class="mono-meta">Open source · MIT License</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Section 11: Footer -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-primary">
+        <div class="footer-brand">
+          <span class="footer-title">WILDLIGHT</span>
+          <span class="footer-sub">Environmental Audio Intelligence</span>
+        </div>
+        <p class="footer-tagline">
+          Built through experimental machine learning and audio engineering by Brettlee Sojan.
+        </p>
+      </div>
+
+      <div class="footer-nav">
+        <div class="footer-col">
+          <span class="footer-heading">Research Navigation</span>
+          <ul class="footer-links">
+            <li><a href="#research">Research Questions</a></li>
+            <li><a href="#methodology">Dataset &amp; Preprocessing</a></li>
+            <li><a href="#results">Fold-5 Comparison</a></li>
+            <li><a href="#cross-validation">Five-Fold Cross-Validation</a></li>
+            <li><a href="#engineering">Engineering Pipeline</a></li>
+            <li><a href="#limitations">Limitations &amp; Scope</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <span class="footer-heading">External Artifacts</span>
+          <ul class="footer-links">
+            <li><a href="https://github.com/brettleevector-art/wildlight-audio-ml" target="_blank" rel="noopener noreferrer">GitHub Repository ↗</a></li>
+            <li><a href="https://github.com/brettleevector-art/wildlight-audio-ml/blob/main/README.md" target="_blank" rel="noopener noreferrer">Technical README ↗</a></li>
+            <li><a href="https://github.com/brettleevector-art/wildlight-audio-ml/blob/main/RESULTS.md" target="_blank" rel="noopener noreferrer">Experiment Results ↗</a></li>
+            <li><a href="https://github.com/karolpiczak/ESC-50" target="_blank" rel="noopener noreferrer">ESC-50 Dataset Source ↗</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="copyright">
+          © 2026 Brettlee Sojan. Static research showcase deployed via Vercel.
+        </p>
+        <a href="#hero" class="back-to-top" aria-label="Back to top of page">
+          <span>Back to top</span>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 13V3M8 3L3 8M8 3L13 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Chart Lightbox Modal -->
+  <div id="chart-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-caption" hidden>
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-caption" class="modal-title">Chart View</h3>
+        <button type="button" class="modal-close" id="modal-close" aria-label="Close chart preview">✕</button>
+      </div>
+      <div class="modal-body">
+        <img id="modal-image" src="" alt="" class="modal-img">
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification for Copy -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden>
+    Command copied to clipboard
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
